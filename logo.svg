@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>Natural Color Palette</title>
+  <!-- Plugin rule on a neutral: background L 0.18, each plate three ×1.22 steps lighter (L 0.33, 0.59), the top plate white -->
+  <rect width="128" height="128" rx="28" fill="#121212"/>
+  <!-- Shifted 3 down: the darkest plate nearly vanishes into the background, so the geometric center reads high -->
+  <g stroke-linejoin="round" transform="translate(0 3)">
+    <polygon points="64,63 98,80 64,97 30,80" fill="#343434" stroke="#343434" stroke-width="8"/>
+    <polygon points="64,47 98,64 64,81 30,64" fill="#121212" stroke="#121212" stroke-width="14"/>
+    <polygon points="64,47 98,64 64,81 30,64" fill="#7E7E7E" stroke="#7E7E7E" stroke-width="8"/>
+    <polygon points="64,31 98,48 64,65 30,48" fill="#121212" stroke="#121212" stroke-width="14"/>
+    <polygon points="64,31 98,48 64,65 30,48" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="8"/>
+  </g>
+</svg>

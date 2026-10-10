@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  /* Only Figma's injected theme tokens, so the window follows the editor's light or dark theme */
+  * { box-sizing: border-box; margin: 0; }
+  .figma-light { color-scheme: light; }
+  .figma-dark { color-scheme: dark; }
+  html, body { height: 100%; }
+  body {
+    display: flex;
+    flex-direction: column;
+    font: 11px/16px Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    color: var(--figma-color-text);
+    background: var(--figma-color-bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  main { flex: 1; overflow-y: auto; padding: 0 16px 12px; }
+  h2 { padding: 12px 0 4px; font-size: 11px; font-weight: 500; }
+  .hint { color: var(--figma-color-text-secondary); }
+  .hint.danger { color: var(--figma-color-text-danger); }
+  .row { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+  .row > label { width: 72px; flex: none; color: var(--figma-color-text-secondary); }
+
+  input[type=text] {
+    flex: 1;
+    height: 24px;
+    min-width: 0;
+    padding: 0 7px;
+    font: inherit;
+    color: inherit;
+    background: var(--figma-color-bg-secondary);
+    border: 1px solid transparent;
+    border-radius: 5px;
+  }
+  input[type=text]:hover { border-color: var(--figma-color-border); }
+  input:focus-visible { outline: none; border-color: var(--figma-color-border-selected); }
+  input[type=checkbox] { margin: 0; accent-color: var(--figma-color-bg-brand); }
+  input[type=color] {
+    width: 24px;
+    height: 24px;
+    flex: none;
+    padding: 0;
+    background: none;
+    border: 1px solid var(--figma-color-border);
+    border-radius: 5px;
+  }
+  input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+  input[type=color]::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 8px;
+    font: inherit;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--figma-color-text);
+    background: transparent;
+    border: 1px solid var(--figma-color-border);
+    border-radius: 5px;
+  }
+  button:hover { background: var(--figma-color-bg-hover); }
+  button:focus-visible { outline: 2px solid var(--figma-color-border-selected); outline-offset: -1px; }
+  button:disabled { color: var(--figma-color-text-disabled); background: transparent; }
+  button.primary { color: var(--figma-color-text-onbrand); background: var(--figma-color-bg-brand); border-color: transparent; }
+  button.primary:hover { background: var(--figma-color-bg-brand-hover); }
+  button.primary:disabled { color: var(--figma-color-text-ondisabled); background: var(--figma-color-bg-disabled); }
+  .dot { width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--figma-color-border); }
+  button:disabled .dot { display: none; }
+
+  /* Preview mockups: each radius is its parent's radius minus the padding between them */
+  .previews {
+    --r-chip: 4px;
+    --p-inner: 6px;
+    --p-card: 8px;
+    --p-mock: 8px;
+    --r-inner: calc(var(--r-chip) + var(--p-inner));
+    --r-card: calc(var(--r-inner) + var(--p-card));
+    --r-mock: calc(var(--r-card) + var(--p-mock));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding-top: 16px;
+  }
+  .mock {
+    display: grid;
+    gap: 8px;
+    padding: var(--p-mock);
+    border-radius: var(--r-mock);
+    color: var(--text-primary);
+    background: var(--surface-0);
+  }
+  .mock-title { padding: 0 4px; color: var(--text-muted); }
+  .card { display: grid; gap: 6px; padding: var(--p-card); border-radius: var(--r-card); background: var(--surface-1); }
+  .inner { display: grid; gap: 6px; padding: var(--p-inner); border-radius: var(--r-inner); background: var(--surface-2); }
+  .t1 { font-weight: 500; }
+  .t2 { font-size: 10px; line-height: 14px; color: var(--text-muted); }
+  .actions { display: flex; justify-content: space-between; }
+  .chip, .btn { padding: 2px 6px; font-size: 10px; line-height: 14px; border-radius: var(--r-chip); }
+  .chip { background: var(--surface-3); }
+  .btn { font-weight: 500; color: var(--on-accent); background: var(--accent); }
+  .strip { display: flex; gap: 2px; margin-top: 8px; }
+  .strip span { flex: 1; height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--figma-color-border); }
+  .verdict { margin-top: 8px; }
+  #status { flex: 1; }
+  #status:focus-visible::after { content: '\A' attr(title); white-space: pre-line; }
+
+  footer { padding: 8px 16px 12px; border-top: 1px solid var(--figma-color-border); }
+  footer .row > label { flex: 1; width: auto; display: flex; align-items: center; gap: 8px; color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h2>Color</h2>
+  <div class="row">
+    <input type="color" id="swatch" aria-label="Pick a color">
+    <input type="text" id="color" spellcheck="false" autocomplete="off" placeholder="Hex, rgb(), hsl() or oklch()" aria-label="Color as hex, rgb(), hsl() or oklch()">
+    <button id="selection" disabled><span class="dot" id="selectionDot"></span>Use selection</button>
+  </div>
+  <p class="hint" id="oklch" aria-live="polite"></p>
+  <div class="row">
+    <label for="name">Collection</label>
+    <input type="text" id="name" list="names" spellcheck="false" autocomplete="off">
+    <datalist id="names"></datalist>
+  </div>
+
+  <div class="previews">
+    <div>
+      <div class="mock" data-mode="Light">
+        <div class="mock-title">Light</div>
+        <div class="card">
+          <div><div class="t1">Weekly focus</div><div class="t2">Card</div></div>
+          <div class="inner">
+            <div><div class="t1">Review</div><div class="t2">Inner</div></div>
+            <div class="actions"><span class="chip">Chip</span><span class="btn">Open</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="strip" data-mode="Light"></div>
+    </div>
+    <div>
+      <div class="mock" data-mode="Dark">
+        <div class="mock-title">Dark</div>
+        <div class="card">
+          <div><div class="t1">Weekly focus</div><div class="t2">Card</div></div>
+          <div class="inner">
+            <div><div class="t1">Review</div><div class="t2">Inner</div></div>
+            <div class="actions"><span class="chip">Chip</span><span class="btn">Open</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="strip" data-mode="Dark"></div>
+    </div>
+  </div>
+  <div class="row verdict">
+    <p class="hint" id="status" tabindex="0" aria-live="polite"></p>
+    <button id="copy" title="Copy both modes as CSS custom properties">Copy CSS</button>
+  </div>
+</main>
+
+<footer>
+  <p class="hint" id="summary"></p>
+  <div class="row">
+    <label><input type="checkbox" id="preview" checked>Canvas preview</label>
+    <button id="create" class="primary">Create variables</button>
+  </div>
+</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id)
+  const state = { color: '', css: '', names: [], defaultName: '', roles: [], strip: [], modes: [], minContrast: 0, selection: null, valid: false, busy: false }
+  let queued = false
+
+  function post(msg) {
+    parent.postMessage({ pluginMessage: msg }, '*')
+  }
+
+  // One preview request per frame keeps typing and color dragging smooth
+  function requestPreview() {
+    if (queued) return
+    queued = true
+    requestAnimationFrame(() => {
+      queued = false
+      post({ type: 'preview', color: state.color })
+    })
+  }
+
+  function setColor(value) {
+    state.color = value
+    $('color').value = value
+    requestPreview()
+  }
+
+  function setSelection(hex) {
+    state.selection = hex
+    $('selection').disabled = !hex
+    $('selectionDot').style.background = hex || 'transparent'
+    $('selection').title = hex ? `Use ${hex} from the selected layer` : 'Select a layer with a solid fill'
+  }
+
+  function collectionName() {
+    return $('name').value.trim() || state.defaultName
+  }
+
+  function updateCreate() {
+    const name = collectionName()
+    const exists = state.names.includes(name)
+    $('create').disabled = state.busy || !state.valid
+    $('copy').disabled = !state.valid
+    $('create').textContent = state.busy ? 'Working…' : exists ? 'Update variables' : 'Create variables'
+    $('summary').textContent = exists
+      ? `Updates “${name}”. Designs using it recolor.`
+      : `Creates ${state.roles.length} variables with Light and Dark modes.`
+  }
+
+  function setNames(names) {
+    state.names = names
+    $('names').replaceChildren(...names.map((n) => Object.assign(document.createElement('option'), { value: n })))
+    updateCreate()
+  }
+
+  // Plain verdict up front, the weakest ratios per mode on hover or keyboard focus
+  function statusFor(checks) {
+    const min = state.minContrast
+    const failing = state.modes.filter((m) => checks[m].text < min || checks[m].muted < min || checks[m].accent < min)
+    const detail = state.modes.map((m) => {
+      const c = checks[m]
+      return `${m}: text ${c.text.toFixed(1)}:1, muted ${c.muted.toFixed(1)}:1, accent ${c.accent.toFixed(1)}:1`
+    }).join('\n')
+    return failing.length
+      ? { text: `Contrast is below WCAG AA in ${failing.join(' and ')}.`, tone: 'danger', detail }
+      : { text: 'Passes WCAG AA in Light and Dark.', tone: '', detail }
+  }
+
+  // Plugin iframes have no clipboard permission, so copying goes through a selected textarea
+  function copyText(value) {
+    const area = Object.assign(document.createElement('textarea'), { value })
+    document.body.appendChild(area)
+    area.select()
+    const ok = document.execCommand('copy')
+    area.remove()
+    return ok
+  }
+
+  function showPalette(p) {
+    $('swatch').value = p.source.toLowerCase()
+    $('oklch').textContent = p.oklch
+    $('oklch').className = 'hint'
+    for (const mode of state.modes) {
+      const colors = p.modes[mode]
+      const mock = document.querySelector(`.mock[data-mode="${mode}"]`)
+      for (const key of state.roles) mock.style.setProperty('--' + key.replace('/', '-'), colors[key].hex)
+      const cells = document.querySelector(`.strip[data-mode="${mode}"]`).children
+      state.strip.forEach((key, i) => {
+        const c = colors[key]
+        cells[i].style.background = c.hex
+        cells[i].title = `${key}  ${c.hex}  L ${c.L.toFixed(2)}  C ${c.C.toFixed(3)}`
+      })
+    }
+    const status = statusFor(p.checks)
+    $('status').textContent = status.text
+    $('status').className = 'hint ' + status.tone
+    $('status').title = status.detail
+  }
+
+  function init(msg) {
+    const saved = msg.saved || {}
+    state.roles = msg.roles
+    state.modes = msg.modes
+    state.minContrast = msg.minContrast
+
+    // The strip skips on-accent, which repeats the dark background or white
+    state.strip = msg.roles.filter((key) => key !== 'on-accent')
+    for (const strip of document.querySelectorAll('.strip')) strip.replaceChildren(...state.strip.map(() => document.createElement('span')))
+    state.defaultName = msg.defaultName
+    $('name').placeholder = msg.defaultName
+    $('name').value = saved.name && saved.name !== msg.defaultName ? saved.name : ''
+    $('preview').checked = saved.preview !== false
+    setNames(msg.names)
+    setSelection(msg.selection)
+    setColor(msg.selection || saved.color || '#3B82F6')
+  }
+
+  window.onmessage = (event) => {
+    const msg = event.data.pluginMessage
+    if (!msg) return
+    if (msg.type === 'init') init(msg)
+    if (msg.type === 'selection') setSelection(msg.hex)
+    if (msg.type === 'palette') {
+      state.valid = !msg.error
+      if (msg.error) {
+        $('oklch').textContent = msg.error
+        $('oklch').className = 'hint danger'
+      } else {
+        state.css = msg.css
+        showPalette(msg.palette)
+      }
+      updateCreate()
+    }
+    if (msg.type === 'created') {
+      state.busy = false
+      setNames(msg.names)
+    }
+  }
+
+  $('color').addEventListener('input', (e) => {
+    state.color = e.target.value
+    requestPreview()
+  })
+  $('swatch').addEventListener('input', (e) => setColor(e.target.value.toUpperCase()))
+  $('selection').addEventListener('click', () => setColor(state.selection))
+  $('name').addEventListener('input', updateCreate)
+
+  function create() {
+    if (state.busy || !state.valid) return
+    state.busy = true
+    updateCreate()
+    post({ type: 'create', color: state.color, name: collectionName(), preview: $('preview').checked })
+  }
+
+  $('create').addEventListener('click', create)
+  for (const id of ['color', 'name']) {
+    $(id).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') create()
+    })
+  }
+
+  $('copy').addEventListener('click', () => {
+    $('copy').textContent = copyText(state.css) ? 'Copied' : 'Copy failed'
+    setTimeout(() => ($('copy').textContent = 'Copy CSS'), 1500)
+  })
+</script>
+</body>
+</html>
